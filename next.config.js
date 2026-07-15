@@ -6,7 +6,7 @@
 // your repo name. If you're deploying to a "user/org site" repo named
 // exactly <username>.github.io, or you're using a custom domain, leave
 // REPO_NAME as an empty string.
-const REPO_NAME = 'wedding-website';
+const REPO_NAME = '';
 
 const nextConfig = {
   reactStrictMode: true,
