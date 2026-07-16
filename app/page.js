@@ -106,7 +106,7 @@ export default function Page() {
     <>
       <nav>
         <div className="nav-inner">
-          <span className="nav-monogram">A &amp; J</span>
+          <span className="nav-monogram">D &amp; M</span>
           <ul className="nav-links">
             <li><a href="#story">Story</a></li>
             <li><a href="#details">Details</a></li>
