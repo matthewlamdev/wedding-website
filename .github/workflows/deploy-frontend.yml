@@ -34,10 +34,10 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-
-      - uses: actions/upload-pages-artifact@v3
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: ./frontend/out
 
