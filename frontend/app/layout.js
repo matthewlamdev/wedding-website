@@ -1,4 +1,4 @@
-import './globals.css';
+import '../globals.css';
 
 export const metadata = {
   title: 'Derrick & Michelle — May 8, 2027',

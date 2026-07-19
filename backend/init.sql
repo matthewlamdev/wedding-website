@@ -23,8 +23,6 @@ CREATE TABLE IF NOT EXISTS rsvps (
   submitted_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Sample guests — replace with your real list (see README for how to
--- add more via psql, or edit this file before the first `docker compose up`).
 INSERT INTO guests (code, display_name, names, seats_allotted, table_name, notes) VALUES
   ('smith2027',  'The Smith Family',      ARRAY['John Smith', 'Jane Smith'],                2, 'Table 4', ''),
   ('garcia2027', 'Maria & Carlos Garcia', ARRAY['Maria Garcia', 'Carlos Garcia'],           2, '',        'Table assignment coming soon!'),
