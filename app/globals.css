@@ -413,3 +413,133 @@ footer {
   color: var(--sage);
   text-transform: uppercase;
 }
+
+/* ---------- LOGIN SCREEN ---------- */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--ivory);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 42px 34px;
+}
+
+.login-card h2 {
+  font-size: 1.5rem;
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.login-card p {
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.error-msg {
+  background: #ffd6d6;
+  color: #8b2c2c;
+  padding: 12px;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  border-left: 3px solid #d04040;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+  font-family: 'Work Sans', sans-serif;
+  font-size: inherit;
+  text-decoration: none;
+}
+
+.logout-btn:hover {
+  opacity: 1;
+}
+
+/* ---------- GUEST INFO CARD ---------- */
+.guest-info-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 28px 24px;
+  margin-bottom: 20px;
+}
+
+.guest-info-card h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.4rem;
+  color: var(--ink);
+}
+
+.guest-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.detail-row strong {
+  color: var(--moss);
+  display: inline-block;
+  min-width: 120px;
+}
+
+.guest-info-card h3 {
+  font-size: 1.1rem;
+  color: var(--moss);
+  margin: 0 0 12px 0;
+}
+
+.rsvp-detail {
+  background: var(--ivory);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--gold);
+  border-radius: 2px;
+  font-size: 0.9rem;
+}
+
+.rsvp-detail strong {
+  color: var(--ink);
+  display: block;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 640px) {
+  .login-container {
+    max-width: 100%;
+  }
+
+  .guest-info-card {
+    padding: 20px 16px;
+  }
+
+  .detail-row strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+}

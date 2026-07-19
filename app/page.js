@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
-// Wedding date/time used by the countdown — edit this.
+// Wedding date/time used by the countdown
 const WEDDING_DATE = new Date('2027-05-08T16:00:00');
 
-// GitHub Pages only serves static files, so there's no server to run an
-// API route on. Point this at a form backend instead — Formspree
-// (https://formspree.io) has a free tier that takes about 5 minutes to
-// set up: create a form there, then paste its endpoint URL below.
-const RSVP_ENDPOINT = ''; // e.g. 'https://formspree.io/f/xxxxxxx'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 function useCountdown(target) {
   const [timeLeft, setTimeLeft] = useState(null);
@@ -41,8 +37,91 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
-export default function Page() {
+// Login Component
+function LoginScreen({ onLoginSuccess }) {
+  const [code, setCode] = useState('');
+  const [loginStatus, setLoginStatus] = useState('idle'); // idle | loading | error
+  const [loginError, setLoginError] = useState('');
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoginStatus('loading');
+    setLoginError('');
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Login failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('wedding_auth_token', data.token);
+      setLoginStatus('idle');
+      onLoginSuccess(data.guest);
+    } catch (err) {
+      setLoginStatus('idle');
+      setLoginError(err.message || 'Login failed. Please try again.');
+    }
+  }
+
+  return (
+    <div className="login-screen">
+      <div className="login-container">
+        <div className="hero-content" style={{ marginBottom: 40 }}>
+          <div className="hero-eyebrow">Welcome</div>
+          <h1 className="hero-names">
+            Derrick<span className="hero-amp">&amp;</span>Michelle
+          </h1>
+          <div className="hero-sub">Wedding Details</div>
+        </div>
+
+        <div className="login-card">
+          <h2 style={{ marginTop: 0 }}>Guest Login</h2>
+          <p style={{ color: '#666', marginBottom: 30 }}>
+            Enter your guest code to access your personalized details.
+          </p>
+
+          <form onSubmit={handleLogin}>
+            <div className="field">
+              <label htmlFor="code">Guest Code</label>
+              <input
+                type="text"
+                id="code"
+                placeholder="e.g., chui2027"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
+            </div>
+
+            {loginError && <div className="error-msg">{loginError}</div>}
+
+            <button type="submit" className="submit-btn" disabled={loginStatus === 'loading'}>
+              {loginStatus === 'loading' ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 20, fontSize: '0.9rem', color: '#999' }}>
+            <p style={{ marginTop: 0 }}>Need help? Contact the couple for your guest code and password.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main Wedding Page
+function WeddingPage({ guest, onLogout }) {
   const countdown = useCountdown(WEDDING_DATE);
+  const [guestData, setGuestData] = useState(guest || null);
+  const [rsvpData, setRsvpData] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
 
   const [form, setForm] = useState({
     name: '',
@@ -55,6 +134,35 @@ export default function Page() {
   const [status, setStatus] = useState('idle'); // idle | sending | done | error
   const [message, setMessage] = useState('');
 
+  // Fetch guest and RSVP data
+  useEffect(() => {
+    async function fetchData() {
+      const token = localStorage.getItem('wedding_auth_token');
+      if (!token) {
+        setLoadingData(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGuestData(data.guest);
+          setRsvpData(data.rsvps);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
   function updateField(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
@@ -66,28 +174,26 @@ export default function Page() {
       return;
     }
 
+    if (!guestData?.code) {
+      setStatus('error');
+      setMessage('Unable to submit RSVP. Please refresh and log in again.');
+      return;
+    }
+
     setStatus('sending');
     setMessage('');
 
     try {
-      if (!RSVP_ENDPOINT) {
-        // No backend configured yet — fall back to saving in this
-        // browser only, so you can still test the form while building.
-        const existing = JSON.parse(localStorage.getItem('wedding-rsvps') || '[]');
-        existing.push({ ...form, submittedAt: new Date().toISOString() });
-        localStorage.setItem('wedding-rsvps', JSON.stringify(existing));
-        console.info(
-          'RSVP saved to localStorage only (no RSVP_ENDPOINT set in app/page.js). ' +
-          'Set RSVP_ENDPOINT before sharing the site so responses reach you from every guest\'s device.'
-        );
-      } else {
-        const res = await fetch(RSVP_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(form)
-        });
-        if (!res.ok) throw new Error('Request failed');
-      }
+      const res = await fetch(`${API_BASE}/rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guest_code: guestData.code,
+          ...form
+        })
+      });
+
+      if (!res.ok) throw new Error('Request failed');
 
       setStatus('done');
       setMessage(
@@ -102,6 +208,14 @@ export default function Page() {
     }
   }
 
+  if (loadingData || !guestData) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        Loading guest details...
+      </div>
+    );
+  }
+
   return (
     <>
       <nav>
@@ -113,9 +227,48 @@ export default function Page() {
             <li><a href="#travel">Travel</a></li>
             <li><a href="#faq">FAQ</a></li>
             <li><a href="#rsvp">RSVP</a></li>
+            <li><button onClick={onLogout} className="logout-btn">Logout</button></li>
           </ul>
         </div>
       </nav>
+
+      {/* Guest Info Card */}
+      <div className="wrap" style={{ marginTop: 20 }}>
+        <div className="guest-info-card">
+          <h2>Welcome, {guestData.displayName}!</h2>
+          <div className="guest-details">
+            <div className="detail-row">
+              <strong>Guests:</strong> {guestData.names.join(', ')}
+            </div>
+            <div className="detail-row">
+              <strong>Seats Allotted:</strong> {guestData.seatsAllotted}
+            </div>
+            {guestData.tableName && (
+              <div className="detail-row">
+                <strong>Table:</strong> {guestData.tableName}
+              </div>
+            )}
+            {guestData.notes && (
+              <div className="detail-row">
+                <strong>Notes:</strong> {guestData.notes}
+              </div>
+            )}
+          </div>
+
+          {rsvpData && rsvpData.length > 0 && (
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #eee' }}>
+              <h3 style={{ marginTop: 0 }}>Your RSVP</h3>
+              {rsvpData.map((rsvp, idx) => (
+                <div key={idx} className="rsvp-detail">
+                  <strong>{rsvp.name}</strong> — {rsvp.attending === 'yes' ? '✓ Attending' : '✗ Declining'}
+                  {rsvp.dietary && <div style={{ fontSize: '0.9rem', color: '#666' }}>Dietary: {rsvp.dietary}</div>}
+                  {rsvp.note && <div style={{ fontSize: '0.9rem', color: '#666' }}>Note: {rsvp.note}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <header className="hero">
         <svg
@@ -292,7 +445,7 @@ export default function Page() {
             </details>
             <details>
               <summary>Can I bring a plus-one?</summary>
-              <p>Your invitation will indicate if a plus-one is included. Check your RSVP form below.</p>
+              <p>Your invitation will indicate if a plus-one is included. Check your guest info above.</p>
             </details>
             <details>
               <summary>What if it rains?</summary>
@@ -406,4 +559,41 @@ export default function Page() {
       <footer>Derrick &amp; Michelle — May 8, 2027 — With love and gratitude</footer>
     </>
   );
+}
+
+// Main App Component
+export default function Page() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [guest, setGuest] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('wedding_auth_token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
+    setIsLoading(false);
+  }, []);
+
+  function handleLoginSuccess(guestData) {
+    setGuest(guestData);
+    setIsLoggedIn(true);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('wedding_auth_token');
+    setIsLoggedIn(false);
+    setGuest(null);
+  }
+
+  if (isLoading) {
+    return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
+  }
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return <WeddingPage guest={guest} onLogout={handleLogout} />;
 }

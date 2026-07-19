@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Not exposed outside the Pi — only the api service needs to reach it,
+    # over the internal docker-compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      ADMIN_KEY: ${ADMIN_KEY}
+      PORT: ${PORT}
+    ports:
+      # Bound to localhost only — your Cloudflare Tunnel connects to this
+      # locally and handles the public-facing HTTPS side. Don't change
+      # this to "3001:3001" (0.0.0.0), which would expose it directly.
+      - "127.0.0.1:3001:3001"
+
+volumes:
+  pgdata:
