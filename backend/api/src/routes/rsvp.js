@@ -4,8 +4,6 @@ import { requireAdminKey } from '../middleware/adminAuth.js';
 
 export const rsvpRouter = Router();
 
-// POST /api/rsvp  { guestCode, name, email, attending, guests, dietary, note }
-// Re-validates the guest code server-side (never trust the client) and
 // clamps the seat count to what that guest was actually allotted.
 rsvpRouter.post('/', async (req, res) => {
   const { guestCode, name, email, attending, guests, dietary, note } = req.body || {};

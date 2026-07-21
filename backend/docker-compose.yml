@@ -25,7 +25,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       ADMIN_KEY: ${ADMIN_KEY}
       PORT: ${PORT}
     ports:

@@ -8,15 +8,28 @@ const app = express();
 
 app.use(express.json());
 
-// Only allow requests from your actual site. Set ALLOWED_ORIGIN in .env
-// to your real domain (e.g. https://ourwedding.com) before deploying —
-// otherwise this locks out your own frontend too.
-const allowedOrigin = process.env.ALLOWED_ORIGIN;
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [];
+
+const defaultOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const origins = allowedOrigins.length > 0 ? allowedOrigins : defaultOrigins;
+
 app.use(
   cors({
-    origin: allowedOrigin || false,
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'x-admin-key', 'Authorization']
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (origins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-admin-key', 'Authorization'],
+    credentials: true
   })
 );
 
@@ -24,9 +37,9 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
-app.use('/api/guests', guestsRouter);
-app.use('/api/rsvp', rsvpRouter);
-app.use('/api/auth', authRouter);
+app.use(['/api/guests', '/guests'], guestsRouter);
+app.use(['/api/rsvp', '/rsvp'], rsvpRouter);
+app.use(['/api/auth', '/auth'], authRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -35,4 +48,5 @@ app.use((req, res) => {
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Wedding RSVP API listening on port ${port}`);
+  console.log(`CORS allowed origins: ${origins.join(', ')}`);
 });
